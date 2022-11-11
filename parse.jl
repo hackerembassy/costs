@@ -14,9 +14,21 @@ exchange_rates = Dict(
 )
 
 # Parsing the currency
-currency_parser = exchange_rates |> pairs |> collect |> x -> map(pair -> let name = pair[1], rate = pair[2]; (Equal(name) | Equal(" $name")) > _ -> rate end, x) |> x -> reduce((a, b) -> a | b, x)
+# (yes, it is unbelievably silly to resolve it to rate right there)
+# (I'll need to change that later to (date -> rate))
+currency_parser = exchange_rates |>
+    pairs |> 
+    collect |> 
+    x -> map(pair -> 
+        let name = pair[1], rate = pair[2]
+            Equal(name) > _ -> rate 
+        end, x) |> 
+    x -> reduce((a, b) -> a | b, x, init=(E"" | Space()))
+
 # Parsing number (with optional k for kilo) and a direction (+ (default) /-/±)
-sumparser = (e"±" | e"-" | (e"+" | e"" > _ -> "+")) + ((PFloat32() + ((e"k" > _ -> 1000) | (e"" > _ -> 1)) + currency_parser) > (*))
+sumparser = 
+(e"±" | e"-" | (e"+" | e"" > _ -> "+")) + 
+((PFloat32() + ((e"k" > _ -> 1000) | (e"" > _ -> 1)) + currency_parser) > (*))
 
 # Yah it works
 
